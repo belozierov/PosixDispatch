@@ -6,12 +6,6 @@
 //  Copyright © 2019 Alex Belozierov. All rights reserved.
 //
 
-protocol PDispatchSerialQueueDelegate: class {
-    
-    func cancelPerforming(queue: PDispatchSerialQueue)
-    
-}
-
 class PDispatchSerialQueue: PDispatchQueueBackend {
     
     fileprivate class Blocks {
@@ -27,7 +21,6 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     private let cond = PCondition()
     private var queue = FifoQueue<Item>()
     private var performing = 1, syncIndex = 0
-    weak var delegate: PDispatchSerialQueueDelegate?
     
     init(tag: Int = 0) {
         self.tag = tag
