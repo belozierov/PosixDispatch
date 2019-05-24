@@ -17,13 +17,11 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
         case sync(Int), async(Blocks)
     }
     
-    let tag: Int
     private let cond = PCondition()
     private var queue = FifoQueue<Item>()
     private var performing = 1, syncIndex = 0
     
-    init(tag: Int = 0) {
-        self.tag = tag
+    init() {
         thread.start()
         cond.lockedPerform(block: cond.wait)
     }
@@ -91,7 +89,7 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     
     private func waitSync(enforce: Bool) {
         defer { performing += 1 }
-        if queue.isEmpty { return }
+        if performing == 0, queue.isEmpty { return }
         let index = syncIndex
         syncIndex += 1
         enforce ? queue.insertInStart(.sync(index)) : queue.push(.sync(index))
