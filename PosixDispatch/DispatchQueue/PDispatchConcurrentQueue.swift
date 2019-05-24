@@ -33,6 +33,10 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     private let threadPool: PThreadPool
     
     private func performAsync() {
+        threadPool.async(block: asyncBlock)
+    }
+    
+    private func asyncBlock() {
         lock.lock()
         while currentItem.async != 0, let block = blockQueue.pop() {
             currentItem.async -= 1
@@ -69,9 +73,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     
     private func signalConditions() {
         if currentItem.sync != 0 { syncConditions.broadcast(index: currentItem.index) }
-        for _ in 0..<min(currentItem.async, threadPool.threadCount) {
-            threadPool.async(block: performAsync)
-        }
+        for _ in 0..<min(currentItem.async, threadPool.threadCount) { performAsync() }
     }
     
     private func pushBarrier(item: Item) {
@@ -122,7 +124,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
             else { return (lastItem.async += 1) }
         currentItem.async += 1
         performing += 1
-        threadPool.async(block: performAsync)
+        performAsync()
     }
     
     private func addBarrierAsyncCount() {
@@ -130,7 +132,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
             else { return pushBarrier(item: .init(async: 1, index: nextIndex, barrier: true)) }
         currentItem = .init(async: 1, index: nextIndex, barrier: true)
         performing = 1
-        threadPool.async(block: performAsync)
+        performAsync()
     }
     
     // MARK: - Sync

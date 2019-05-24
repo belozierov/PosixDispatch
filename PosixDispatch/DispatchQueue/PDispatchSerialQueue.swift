@@ -91,7 +91,7 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     
     private func waitSync(enforce: Bool) {
         defer { performing += 1 }
-        if performing == 0 { return }
+        if queue.isEmpty { return }
         let index = syncIndex
         syncIndex += 1
         enforce ? queue.insertInStart(.sync(index)) : queue.push(.sync(index))
