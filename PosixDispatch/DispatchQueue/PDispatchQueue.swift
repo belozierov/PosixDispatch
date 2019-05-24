@@ -53,8 +53,11 @@ class PDispatchQueue: PDispatchQueueBackend {
     
     static func concurrentPerform(iterations: Int, execute work: @escaping (Int) -> Void) {
         let group = PDispatchGroup(count: iterations)
-        PThreadPool(count: 4).async(blocks: (0..<iterations).map { i in { work(i); group.leave() } })
+        let blocks = (0..<iterations).map { i in { work(i); group.leave() } }
+        let pool = PThreadPool(count: Sysconf.processorsNumber)
+        pool.async(blocks: blocks)
         group.wait()
+        //        pool.deallocate() //fix crash
     }
     
 }
