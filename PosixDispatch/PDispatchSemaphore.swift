@@ -8,28 +8,31 @@
 
 class PDispatchSemaphore {
     
-    private let condition = PCondition(), max: Int
+    private let condition = PCondition()
     private var value: Int
     
     init(value: Int = 0) {
         self.value = value
-        max = value
     }
     
     func wait() {
         condition.lock()
-        condition.wait(while: value == 0)
         value -= 1
+        if value < 0 { condition.wait() }
         condition.unlock()
     }
     
-    @discardableResult func signal() -> Int {
+    @discardableResult func signal() -> Bool {
         condition.lock()
-        value += 1
-        let result = value
-        if value < max { condition.signal() }
-        condition.unlock()
-        return result
+        defer { condition.unlock() }
+        if value < 0 {
+            value += 1
+            condition.signal()
+            return true
+        } else {
+            value += 1
+            return false
+        }
     }
     
 }
