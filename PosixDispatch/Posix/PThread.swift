@@ -19,8 +19,9 @@ class PThread {
     }
     
     typealias Block = () -> Void
-    private let block = UnsafeMutablePointer<Block>.allocate(capacity: 1)
+    private let block = UnsafeMutablePointer<Block?>.allocate(capacity: 1)
     private let thread = UnsafeMutablePointer<pthread_t?>.allocate(capacity: 1)
+    private var started = false
     
     init(block: @escaping Block) {
         self.block.initialize(to: block)
@@ -31,10 +32,13 @@ class PThread {
     }
     
     func start() {
+        if started { return }
         pthread_create(thread, nil, {
-            let pointer = $0.assumingMemoryBound(to: (() -> Void).self)
-            pointer.pointee()
-            pointer.deinitialize(count: 1)
+            let pointer = $0.assumingMemoryBound(to: PThread.Block?.self)
+            if let block = pointer.pointee {
+                block()
+                pointer.deinitialize(count: 1)
+            }
             pointer.deallocate()
             return nil
         }, block)
@@ -47,6 +51,7 @@ class PThread {
     
     deinit {
         thread.deallocate()
+        if !started { block.deallocate() }
     }
     
 }
