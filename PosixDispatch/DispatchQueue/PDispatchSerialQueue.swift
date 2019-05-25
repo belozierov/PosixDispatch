@@ -17,73 +17,76 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
         case sync(Int), async(Blocks)
     }
     
-    private let cond = PCondition()
-    private var queue = FifoQueue<Item>()
-    private var performing = 1, syncIndex = 0
+    private let condition = PCondition()
+    private var queue = FifoQueue<Item>(), performing = 1
     
     init() {
         thread.start()
-        cond.lockedPerform(block: cond.wait)
+        condition.lockedPerform(block: condition.wait)
     }
     
     // MARK: - Thread
     
+    private lazy var threadCondition = PCondition(lock: condition)
+    
     private lazy var thread = PThread { [weak self] in
-        self.map { $0.cond.lockedPerform(block: $0.cond.signal) }
+        (self?.condition).map { $0.lockedPerform(block: $0.signal) }
         while let self = self { self.performLoop() }
     }
     
     // MARK: - RunLoop
     
     private func performLoop() {
-        cond.lock()
+        condition.lock()
         waitAsync()
         let blocks = queue.pop()
-        cond.unlock()
+        condition.unlock()
         blocks?.asyncBlocks?.blocks.forEach { $0() }
     }
     
     private func waitAsync() {
         guard performing == 2 || queue.first?.asyncBlocks == nil else { return }
         performing -= 1
-        cond.broadcast()
-        cond.repeatWait(while: performing == 1 || queue.first?.asyncBlocks == nil)
+        condition.broadcast()
+        threadCondition.repeatWait(while: performing == 1 || queue.first?.asyncBlocks == nil)
         performing += 1
     }
     
     // MARK: - Async
     
     @inlinable func async(execute work: @escaping Block) {
-        cond.lock()
+        condition.lock()
         if let blocks = queue.last?.asyncBlocks {
             blocks.blocks.append(work)
         } else {
             queue.push(.async(.init(work)))
-            if performing == 0 { cond.signal() }
+            if performing == 0 { threadCondition.signal() }
         }
-        cond.unlock()
+        condition.unlock()
     }
     
     func async(flags: DispatchItemFlags, execute work: @escaping Block) {
         guard flags.contains(.enforceQoS) else { return async(execute: work) }
-        cond.lock()
+        condition.lock()
         queue.insertInStart(.async(.init(work)))
-        if performing == 0 { cond.signal() }
-        cond.unlock()
+        if performing == 0 { threadCondition.signal() }
+        condition.unlock()
     }
     
     // MARK: - Sync
     
+    private var syncIndex = 0
+    
     @discardableResult func sync<T>(execute work: () throws -> T) rethrows -> T {
-        cond.lockedPerform { waitSync(enforce: false) }
-        defer { cond.lockedPerform(block: finishSync) }
+        condition.lockedPerform { waitSync(enforce: false) }
+        defer { condition.lockedPerform(block: finishSync) }
         return try work()
     }
     
     @discardableResult
     func sync<T>(flags: DispatchItemFlags, execute work: () throws -> T) rethrows -> T {
-        cond.lockedPerform { waitSync(enforce: flags.contains(.enforceQoS)) }
-        defer { cond.lockedPerform(block: finishSync) }
+        condition.lockedPerform { waitSync(enforce: flags.contains(.enforceQoS)) }
+        defer { condition.lockedPerform(block: finishSync) }
         return try work()
     }
     
@@ -93,13 +96,17 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
         let index = syncIndex
         syncIndex += 1
         enforce ? queue.insertInStart(.sync(index)) : queue.push(.sync(index))
-        cond.repeatWait(while: performing != 0 || queue.first?.syncIndex != index)
+        condition.repeatWait(while: performing != 0 || queue.first?.syncIndex != index)
         queue.pop()
     }
     
     private func finishSync() {
         performing -= 1
-        cond.broadcast()
+        switch queue.first {
+        case .sync?: condition.broadcast()
+        case .async?: threadCondition.signal()
+        default: break
+        }
     }
     
 }
