@@ -10,27 +10,25 @@ class PConditionStorage {
     
     private let lock: PLock
     private var conditions = [Int: PCondition]()
+    private var pool = ContiguousArray<PCondition>()
     
     init(lock: PLock) {
         self.lock = lock
     }
     
-    @inlinable func signal(index: Int, count: Int) {
-        guard let condition = conditions.removeValue(forKey: index) else { return }
+    @inlinable func signal(index: Int, count: Int = 1) {
+        guard let condition = removeCondition(index: index) else { return }
         (0..<count).forEach { _ in condition.signal() }
     }
     
     @inlinable func broadcast(index: Int) {
-        conditions.removeValue(forKey: index)?.broadcast()
+        removeCondition(index: index)?.broadcast()
     }
     
-    @inlinable func broadcast() {
-        conditions.values.forEach { $0.broadcast() }
-        conditions.removeAll()
-    }
-    
-    @inlinable func removeAll() {
-        conditions.removeAll()
+    private func removeCondition(index: Int) -> PCondition? {
+        guard let condition = conditions.removeValue(forKey: index) else { return nil }
+        pool.append(condition)
+        return condition
     }
     
     @inlinable func wait(index: Int) {
@@ -49,7 +47,7 @@ class PConditionStorage {
     
     private func condition(for index: Int) -> PCondition {
         if let condition = conditions[index] { return condition }
-        let condition = PCondition(lock: lock)
+        let condition = pool.popLast() ?? PCondition(lock: lock)
         conditions[index] = condition
         return condition
     }
