@@ -44,11 +44,13 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     private lazy var thread = PThread { [weak self] in
         self?.lock.lock()
         self?.threadCondition.signal()
-        while let self = self { self.runLoop() }
+        while let condition = self?.threadCondition {
+            condition.wait()
+            self?.runLoop()
+        }
     }
     
     private func runLoop() {
-        threadCondition.wait()
         while case .async(let blocks)? = queue.first {
             queue.pop()
             lock.unlock()
@@ -67,9 +69,7 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
             blocks.blocks.append(work)
         } else {
             queue.push(.async(.init(work)))
-            if performing { return }
-            performing = true
-            threadCondition.signal()
+            startAsyncPerforming()
         }
     }
     
@@ -77,8 +77,14 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
         guard flags.contains(.enforceQoS) else { return async(execute: work) }
         lock.lock()
         queue.insertInStart(.async(.init(work)))
-        if !performing { threadCondition.signal() }
+        startAsyncPerforming()
         lock.unlock()
+    }
+    
+    private func startAsyncPerforming() {
+        if performing { return }
+        performing = true
+        threadCondition.signal()
     }
     
     // MARK: - Sync
@@ -104,9 +110,13 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
         guard performing else { return }
         let index = syncIndex
         syncIndex += 1
-        queue.push(.sync(index))
+        enforce ? queue.insertInStart(.sync(index)) : queue.push(.sync(index))
         syncConditions.wait(index: index)
         queue.pop()
+    }
+    
+    deinit {
+        threadCondition.signal()
     }
     
 }

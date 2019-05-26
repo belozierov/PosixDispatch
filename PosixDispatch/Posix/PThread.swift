@@ -33,6 +33,7 @@ class PThread {
     
     func start() {
         if started { return }
+        started = true
         pthread_create(thread, nil, {
             let pointer = $0.assumingMemoryBound(to: PThread.Block?.self)
             if let block = pointer.pointee {
