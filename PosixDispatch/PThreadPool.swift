@@ -16,21 +16,18 @@ class PThreadPool {
     private var queue = FifoQueue<Block>()
     
     init(count: Int) {
-        let group = PDispatchGroup(count: count)
         weak var pool: PThreadPool?
         threads = (0..<count).map { _ in
             PThread {
-                group.leave()
-                pool?.condition.lock()
-                while let condition = pool?.condition {
-                    condition.wait()
-                    pool?.runloop()
-                }
+                guard let condition = pool?.condition else { return }
+                condition.lock()
+                condition.wait(while: pool?.runLoop() != nil)
+                condition.signal()
+                condition.unlock()
             }
         }
         pool = self
         threads.forEach { $0.start() }
-        group.wait()
     }
     
     @inlinable var threadCount: Int {
@@ -39,7 +36,7 @@ class PThreadPool {
     
     // MARK: - RunLoop
     
-    private func runloop() {
+    private func runLoop() {
         while let block = queue.pop() {
             condition.unlock()
             block()
@@ -65,6 +62,10 @@ class PThreadPool {
             queue.push(block)
         }
         condition.unlock()
+    }
+    
+    deinit {
+        condition.broadcast()
     }
     
 }
