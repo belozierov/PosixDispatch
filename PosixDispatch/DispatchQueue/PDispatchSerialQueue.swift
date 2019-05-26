@@ -18,7 +18,14 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     }
     
     private let lock = PLock()
-    private var performing = false
+    private var strongRef: PDispatchSerialQueue?
+    
+    private var performing = false {
+        didSet {
+            guard performing != oldValue else { return }
+            strongRef = performing ? self : nil
+        }
+    }
     
     init() {
         thread.start()
@@ -42,12 +49,10 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     private lazy var threadCondition = PCondition(lock: lock)
     
     private lazy var thread = PThread { [weak self] in
-        self?.lock.lock()
-        self?.threadCondition.signal()
-        while let condition = self?.threadCondition {
-            condition.wait()
-            self?.runLoop()
-        }
+        guard let condition = self?.threadCondition else { return }
+        condition.lock()
+        condition.signal()
+        condition.repeatWait(while: self?.runLoop() != nil)
     }
     
     private func runLoop() {
