@@ -3,9 +3,9 @@ A cross-platform library written in Swift 5 for multithreading based on [POSIX t
 
 It consists of the following:
 
- * **PLock** - Swift wrapper for POSIX mutex, analog to [NSLock](https://developer.apple.com/documentation/foundation/nslock)
- * **PCondition** - Swift wrapper for POSIX condition, analog to [NSCondition](https://developer.apple.com/documentation/foundation/nscondition)
- * **PThread** - Swift wrapper for POSIX thread, analog to [Thread](https://developer.apple.com/documentation/foundation/thread)
+ * **PLock** - wrapper for POSIX mutex, analog to [NSLock](https://developer.apple.com/documentation/foundation/nslock)
+ * **PCondition** - wrapper for POSIX condition, analog to [NSCondition](https://developer.apple.com/documentation/foundation/nscondition)
+ * **PThread** - wrapper for POSIX thread, analog to [Thread](https://developer.apple.com/documentation/foundation/thread)
  * **PThreadPool** - [thread pool](https://en.wikipedia.org/wiki/Thread_pool) implementation
  * **PDispatchQueue** - FIFO queue for serially or concurrently executing tasks, analog to [DispatchQueue](https://developer.apple.com/documentation/dispatch/dispatchqueue)
  * **PDispatchGroup** - group of tasks for aggregation and synchronization, analog to [DispatchGroup](https://developer.apple.com/documentation/dispatch/dispatchgroup)
