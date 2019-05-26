@@ -33,7 +33,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     private let threadPool: PThreadPool
     
     private func performAsync() {
-        threadPool.async(block: asyncBlock)
+        threadPool.perform(block: asyncBlock)
     }
     
     private func asyncBlock() {
