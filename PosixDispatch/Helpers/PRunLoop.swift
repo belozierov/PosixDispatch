@@ -32,7 +32,7 @@ class PRunLoop<Iterator: IteratorProtocol> where Iterator.Element == PThread.Blo
     
 }
 
-extension RunLoop where Iterator == AnyIterator<PThread.Block> {
+extension PRunLoop where Iterator == AnyIterator<PThread.Block> {
     
     convenience init(condition: PCondition, iterator: @escaping () -> PThread.Block?) {
         self.init(condition: condition, iterator: AnyIterator(iterator))

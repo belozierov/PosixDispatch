@@ -47,8 +47,8 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
         self?.runLoop.run(while: self?.startNextItem() != nil)
     }
     
-    private var runLoop: RunLoop<AnyIterator<Block>> {
-        return RunLoop(condition: threadCondition, iterator: queue.popIterator)
+    private var runLoop: PRunLoop<AnyIterator<Block>> {
+        return PRunLoop(condition: threadCondition, iterator: queue.popIterator)
     }
     
     // MARK: - Async

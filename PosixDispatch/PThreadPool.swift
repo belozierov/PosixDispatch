@@ -18,7 +18,7 @@ class PThreadPool {
     
     init(count: Int) {
         let group = PDispatchGroup(count: count)
-        let runLoop = RunLoop(condition: condition, iterator: queue.popIterator)
+        let runLoop = PRunLoop(condition: condition, iterator: queue.popIterator)
         let block = { [weak self] in group.leave(); runLoop.run(while: self != nil) }
         condition.lock()
         threads = (0..<count).map { _ in PThread(block: block) }
