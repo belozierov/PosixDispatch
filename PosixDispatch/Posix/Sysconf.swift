@@ -1,8 +1,8 @@
 //
 //  Sysconf.swift
-//  iOSPosixDispatch
+//  PosixDispatch
 //
-//  Created by Alex Belozierov on 5/24/19.
+//  Created by Alex Belozierov on 5/25/19.
 //  Copyright © 2019 Alex Belozierov. All rights reserved.
 //
 

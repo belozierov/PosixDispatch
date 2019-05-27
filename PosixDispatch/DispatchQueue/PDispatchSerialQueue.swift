@@ -8,24 +8,17 @@
 
 class PDispatchSerialQueue: PDispatchQueueBackend {
     
-    private class Blocks {
+    fileprivate class Blocks {
         var blocks: ContiguousArray<Block>
         init(_ block: @escaping Block) { blocks = [block] }
     }
     
-    private enum Item {
+    fileprivate enum Item {
         case sync(Int), async(Blocks)
     }
     
     private let lock = PLock()
-    private var strongRef: PDispatchSerialQueue?
-    
-    private var performing = false {
-        didSet {
-            guard performing != oldValue else { return }
-            strongRef = performing ? self : nil
-        }
-    }
+    private var performing = false
     
     init() {
         thread.start()
@@ -49,20 +42,13 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     private lazy var threadCondition = PCondition(lock: lock)
     
     private lazy var thread = PThread { [weak self] in
-        guard let condition = self?.threadCondition else { return }
-        condition.lock()
-        condition.signal()
-        condition.repeatWait(while: self?.runLoop() != nil)
+        self?.lock.lock()
+        self?.threadCondition.signal()
+        self?.runLoop.run(while: self?.startNextItem() != nil)
     }
     
-    private func runLoop() {
-        while case .async(let blocks)? = queue.first {
-            queue.pop()
-            lock.unlock()
-            blocks.blocks.forEach { $0() }
-            lock.lock()
-        }
-        startNextItem()
+    private var runLoop: RunLoop<AnyIterator<Block>> {
+        return RunLoop(condition: threadCondition, iterator: queue.popIterator)
     }
     
     // MARK: - Async
@@ -122,6 +108,18 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     
     deinit {
         threadCondition.signal()
+    }
+    
+}
+
+extension FifoQueue where T == PDispatchSerialQueue.Item {
+    
+    fileprivate var popIterator: AnyIterator<PDispatchSerialQueue.Block> {
+        return AnyIterator {
+            guard case .async(let blocks)? = self.first else { return nil }
+            self.pop()
+            return { blocks.blocks.forEach { $0() } }
+        }
     }
     
 }

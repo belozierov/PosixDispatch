@@ -9,39 +9,21 @@
 class PThreadPool {
     
     typealias Block = PThread.Block
-    
     static let global = PThreadPool(count: 64)
     
-    private let threads: [PThread], condition = PCondition()
-    private var queue = FifoQueue<Block>()
+    private let condition = PCondition()
+    private let queue = FifoQueue<Block>()
+    private var threads = [PThread]()
+    var threadCount: Int { return threads.count }
     
     init(count: Int) {
-        weak var pool: PThreadPool?
-        threads = (0..<count).map { _ in
-            PThread {
-                guard let condition = pool?.condition else { return }
-                condition.lock()
-                condition.wait(while: pool?.runLoop() != nil)
-                condition.signal()
-                condition.unlock()
-            }
-        }
-        pool = self
+        let group = PDispatchGroup(count: count)
+        let runLoop = RunLoop(condition: condition, iterator: queue.popIterator)
+        let block = { [weak self] in group.leave(); runLoop.run(while: self != nil) }
+        condition.lock()
+        threads = (0..<count).map { _ in PThread(block: block) }
         threads.forEach { $0.start() }
-    }
-    
-    @inlinable var threadCount: Int {
-        return threads.count
-    }
-    
-    // MARK: - RunLoop
-    
-    private func runLoop() {
-        while let block = queue.pop() {
-            condition.unlock()
-            block()
-            condition.lock()
-        }
+        group.wait()
     }
     
     // MARK: - Perfrom Block

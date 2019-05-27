@@ -6,7 +6,7 @@
 //  Copyright © 2019 Alex Belozierov. All rights reserved.
 //
 
-struct FifoQueue<T> {
+class FifoQueue<T> {
     
     private var input = [T](), output: [T]
     
@@ -18,19 +18,19 @@ struct FifoQueue<T> {
         output = array.reversed()
     }
     
-    @inlinable mutating func push(_ item: T) {
+    @inlinable func push(_ item: T) {
         input.append(item)
     }
     
-    @inlinable mutating func push(_ items: [T]) {
+    @inlinable func push(_ items: [T]) {
         input.append(contentsOf: items)
     }
     
-    @inlinable  mutating func insertInStart(_ item: T) {
+    @inlinable func insertInStart(_ item: T) {
         output.append(item)
     }
     
-    @discardableResult mutating func pop() -> T? {
+    @discardableResult func pop() -> T? {
         if let item = output.popLast() { return item }
         if input.isEmpty { return nil }
         output = input.reversed()
@@ -38,20 +38,24 @@ struct FifoQueue<T> {
         return output.popLast()
     }
     
-    @inlinable  var isEmpty: Bool {
+    @inlinable var isEmpty: Bool {
         return output.isEmpty && input.isEmpty
     }
     
-    @inlinable  var count: Int {
+    @inlinable var count: Int {
         return output.count + input.count
     }
     
-    @inlinable  var first: T? {
+    @inlinable var first: T? {
         return output.last ?? input.first
     }
     
-    @inlinable  var last: T? {
+    @inlinable var last: T? {
         return input.last ?? output.first
+    }
+    
+    var popIterator: AnyIterator<T> {
+        return AnyIterator { self.pop() }
     }
     
 }
