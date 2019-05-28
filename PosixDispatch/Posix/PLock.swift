@@ -30,6 +30,10 @@ class PLock {
         pthread_mutex_lock(mutex)
     }
     
+    @inlinable @discardableResult func tryLock() -> Bool {
+        return pthread_mutex_trylock(mutex) == 0
+    }
+    
     @inlinable func unlock() {
         pthread_mutex_unlock(mutex)
     }

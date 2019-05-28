@@ -54,7 +54,7 @@ class FifoQueue<T> {
         return input.last ?? output.first
     }
     
-    var popIterator: AnyIterator<T> {
+    @inlinable var popIterator: AnyIterator<T> {
         return AnyIterator { self.pop() }
     }
     

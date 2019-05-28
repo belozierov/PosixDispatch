@@ -47,7 +47,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     
     // MARK: - Items
     
-    private var itemQueue = FifoQueue<Item>()
+    private let itemQueue = FifoQueue<Item>()
     private var currentItem = Item(index: 0)
     private var lastItem = Item(index: 1)
     private var indexCounter = 2
@@ -101,7 +101,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     
     // MARK: - Async
     
-    private var blockQueue = FifoQueue<Block>()
+    private let blockQueue = FifoQueue<Block>()
     
     func async(execute work: @escaping Block) {
         lock.lock()

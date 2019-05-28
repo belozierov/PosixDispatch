@@ -22,20 +22,12 @@ class PRunLoop<Iterator: IteratorProtocol> where Iterator.Element == PThread.Blo
     }
     
     private func loop() {
-        condition.wait()
         while let block = iterator.next() {
             condition.unlock()
             block()
             condition.lock()
         }
-    }
-    
-}
-
-extension PRunLoop where Iterator == AnyIterator<PThread.Block> {
-    
-    convenience init(condition: PCondition, iterator: @escaping () -> PThread.Block?) {
-        self.init(condition: condition, iterator: AnyIterator(iterator))
+        condition.wait()
     }
     
 }

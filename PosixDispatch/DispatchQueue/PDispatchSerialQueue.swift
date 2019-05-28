@@ -27,7 +27,7 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     
     // MARK: - Queue
     
-    private var queue = FifoQueue<Item>()
+    private let queue = FifoQueue<Item>()
     
     private func startNextItem() {
         switch queue.first {
