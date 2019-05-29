@@ -39,10 +39,10 @@ class PLock {
     }
     
     @inlinable @discardableResult
-    func lockedPerform<T>(block: () -> T) -> T {
+    func lockedPerform<T>(block: () throws -> T) rethrows -> T {
         lock()
         defer { unlock() }
-        return block()
+        return try block()
     }
     
     deinit {

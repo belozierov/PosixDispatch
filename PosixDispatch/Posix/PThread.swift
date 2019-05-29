@@ -45,9 +45,13 @@ class PThread {
         }, block)
     }
     
-    func wait() {
+    @inlinable func wait() {
         guard let thread = thread.pointee else { return }
         pthread_join(thread, nil)
+    }
+    
+    @inlinable func yield() {
+        pthread_yield_np()
     }
     
     deinit {

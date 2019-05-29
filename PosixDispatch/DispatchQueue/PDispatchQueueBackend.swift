@@ -10,11 +10,35 @@ protocol PDispatchQueueBackend: class {
     
     typealias Block = PThread.Block
     typealias DispatchItemFlags = PDispatchQueue.DispatchItemFlags
+    typealias WorkItem<T> = PDispatchWorkItem<T>
     
     @discardableResult func sync<T>(execute work: () throws -> T) rethrows -> T
     @discardableResult func sync<T>(flags: DispatchItemFlags, execute work: () throws -> T) rethrows -> T
     
     func async(flags: DispatchItemFlags, execute work: @escaping Block)
     func async(execute work: @escaping Block)
+    
+}
+
+extension PDispatchQueueBackend {
+    
+    func async<T>(execute workItem: PDispatchWorkItem<T>) {
+        async(flags: workItem.flags, execute: workItem.perform)
+    }
+    
+    @discardableResult
+    func sync<T>(execute workItem: PDispatchWorkItem<T>) throws -> T {
+        return try sync(flags: workItem.flags) {
+            workItem.perform()
+            return try workItem.await()
+        }
+    }
+    
+    @discardableResult
+    func async<T>(flags: DispatchItemFlags = [], execute work: @escaping () throws -> T) -> PDispatchWorkItem<T> {
+        let item = PDispatchWorkItem(flags: flags, block: work)
+        async(flags: flags, execute: item.perform)
+        return item
+    }
     
 }

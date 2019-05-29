@@ -10,6 +10,7 @@ class PRunLoop<Iterator: IteratorProtocol> where Iterator.Element == PThread.Blo
     
     private let condition: PCondition
     private var iterator: Iterator
+    private(set) var performingLoops = 0
     
     init(condition: PCondition, iterator: Iterator) {
         self.condition = condition
@@ -23,11 +24,13 @@ class PRunLoop<Iterator: IteratorProtocol> where Iterator.Element == PThread.Blo
     
     private func loop() {
         condition.wait()
+        performingLoops += 1
         while let block = iterator.next() {
             condition.unlock()
             block()
             condition.lock()
         }
+        performingLoops -= 1
     }
     
 }

@@ -14,11 +14,12 @@ class PThreadPool {
     private let condition = PCondition()
     private let queue = FifoQueue<Block>()
     private var threads = [PThread]()
-    var threadCount: Int { return threads.count }
+    private lazy var runLoop = PRunLoop(condition: condition, iterator: queue.popIterator)
+    @inlinable var threadCount: Int { return threads.count }
     
     init(count: Int) {
         let group = PDispatchGroup(count: count)
-        let runLoop = PRunLoop(condition: condition, iterator: queue.popIterator)
+        let runLoop = self.runLoop
         let block = { [weak self, weak group] in
             self?.condition.lock()
             group?.leave()
@@ -39,11 +40,9 @@ class PThreadPool {
     
     func perform(block: @escaping Block) {
         condition.lock()
-        if queue.isEmpty {
-            queue.push(block)
+        queue.push(block)
+        if runLoop.performingLoops != threads.count {
             condition.signal()
-        } else {
-            queue.push(block)
         }
         condition.unlock()
     }
