@@ -110,9 +110,9 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
         lock.unlock()
     }
     
-    func async(flags: DispatchItemFlags, execute work: @escaping Block) {
+    func async(group: PDispatchGroup? = nil, flags: DispatchItemFlags = [], execute work: @escaping Block) {
         lock.lock()
-        blockQueue.push(work)
+        blockQueue.push(group.block(with: work))
         flags.contains(.barrier)
             ? addBarrierAsyncCount()
             : addNotBarrierAsyncCount()

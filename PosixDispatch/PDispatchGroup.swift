@@ -15,16 +15,8 @@ class PDispatchGroup {
         self.count = count
     }
     
-    @inlinable func setCount(_ count: Int) {
-        condition.lock()
-        self.count = count
-        condition.unlock()
-    }
-    
     @inlinable func enter() {
-        condition.lock()
-        count += 1
-        condition.unlock()
+        condition.lockedPerform { count += 1 }
     }
     
     @inlinable func leave() {
@@ -35,9 +27,17 @@ class PDispatchGroup {
     }
     
     @inlinable func wait() {
-        condition.lock()
-        condition.wait()
-        condition.unlock()
+        condition.lockedPerform { condition.wait() }
+    }
+    
+}
+
+extension Optional where Wrapped: PDispatchGroup {
+    
+    func block(with work: @escaping PThreadPool.Block) -> PThreadPool.Block {
+        guard let group = self else { return work }
+        group.enter()
+        return { work(); group.leave() }
     }
     
 }

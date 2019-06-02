@@ -45,8 +45,8 @@ class PDispatchQueue: PDispatchQueueBackend {
         backend.async(execute: work)
     }
     
-    @inlinable func async(flags: DispatchItemFlags, execute work: @escaping Block) {
-        backend.async(flags: flags, execute: work)
+    @inlinable func async(group: PDispatchGroup? = nil, flags: DispatchItemFlags = [], execute work: @escaping Block) {
+        backend.async(group: group, flags: flags, execute: work)
     }
     
     // MARK: - Concurrent Perform

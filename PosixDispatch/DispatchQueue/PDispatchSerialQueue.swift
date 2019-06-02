@@ -64,10 +64,11 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
         }
     }
     
-    func async(flags: DispatchItemFlags, execute work: @escaping Block) {
-        guard flags.contains(.enforceQoS) else { return async(execute: work) }
+    func async(group: PDispatchGroup? = nil, flags: DispatchItemFlags = [], execute work: @escaping Block) {
+        let block = group.block(with: work)
+        guard flags.contains(.enforceQoS) else { return async(execute: block) }
         lock.lock()
-        queue.insertInStart(.async(.init(work)))
+        queue.insertInStart(.async(.init(block)))
         startAsyncPerforming()
         lock.unlock()
     }
