@@ -10,3 +10,4 @@ It consists of the following:
  * **PDispatchQueue** - FIFO queue for serially or concurrently executing tasks, analog to [DispatchQueue](https://developer.apple.com/documentation/dispatch/dispatchqueue)
  * **PDispatchGroup** - group of tasks for aggregation and synchronization, analog to [DispatchGroup](https://developer.apple.com/documentation/dispatch/dispatchgroup)
  * **PDispatchSemaphore** - [semaphore](https://en.wikipedia.org/wiki/Semaphore_(programming)) implementation, analog to [DispatchSemaphore](https://developer.apple.com/documentation/dispatch/dispatchsemaphore)
+  * **PDispatchWorkItem** - block wrapper, analog to [DispatchWorkItem](https://developer.apple.com/documentation/dispatch/dispatchworkitem)
