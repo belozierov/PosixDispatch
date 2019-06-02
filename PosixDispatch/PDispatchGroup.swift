@@ -27,7 +27,9 @@ class PDispatchGroup {
     }
     
     @inlinable func wait() {
-        condition.lockedPerform { condition.wait() }
+        condition.lock()
+        if count != 0 { condition.wait() }
+        condition.unlock()
     }
     
 }

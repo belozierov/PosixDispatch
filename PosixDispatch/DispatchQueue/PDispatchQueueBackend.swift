@@ -22,8 +22,8 @@ protocol PDispatchQueueBackend: class {
 
 extension PDispatchQueueBackend {
     
-    func async<T>(execute workItem: PDispatchWorkItem<T>) {
-        async(flags: workItem.flags, execute: workItem.perform)
+    func async<T>(group: PDispatchGroup? = nil, execute workItem: PDispatchWorkItem<T>) {
+        async(group: group, flags: workItem.flags, execute: workItem.perform)
     }
     
     @discardableResult
