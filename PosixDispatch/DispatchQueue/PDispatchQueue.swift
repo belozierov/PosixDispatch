@@ -19,17 +19,18 @@ class PDispatchQueue: PDispatchQueueBackend {
         let rawValue: Int
     }
     
-    static let global = PDispatchQueue(label: "com.global", attributes: .concurrent)
-    
     let label: String
     private let backend: PDispatchQueueBackend
+    var qos: DispatchQoS { return backend.qos }
     
-    init(label: String, attributes: Attributes = []) {
+    init(label: String = "", qos: DispatchQoS = .utility, attributes: Attributes = []) {
         self.label = label
         backend = attributes.contains(.concurrent)
-            ? PDispatchConcurrentQueue(threadPool: .global)
+            ? PDispatchConcurrentQueue(threadPool: .global, qos: qos)
             : PDispatchSerialQueue()
     }
+    
+    // MARK: - PDispatchQueueBackend
     
     @discardableResult @inlinable
     func sync<T>(execute work: () throws -> T) rethrows -> T {
@@ -47,6 +48,15 @@ class PDispatchQueue: PDispatchQueueBackend {
     
     @inlinable func async(group: PDispatchGroup? = nil, flags: DispatchItemFlags = [], execute work: @escaping Block) {
         backend.async(group: group, flags: flags, execute: work)
+    }
+    
+    // MARK: - Global queues
+    
+    private static let queues = DispatchQoS.allCases
+        .map { PDispatchQueue(label: "com.global\($0.rawValue)", qos: $0, attributes: .concurrent) }
+    
+    static func global(qos: DispatchQoS = .utility) -> PDispatchQueue {
+        return queues[qos.rawValue]
     }
     
     // MARK: - Concurrent Perform

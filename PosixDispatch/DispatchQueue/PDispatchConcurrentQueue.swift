@@ -23,8 +23,10 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     }
     
     private let lock = PLock()
+    let qos: DispatchQoS
     
-    init(threadPool: PThreadPool) {
+    init(threadPool: PThreadPool, qos: DispatchQoS) {
+        self.qos = qos
         self.threadPool = threadPool
     }
     
@@ -33,7 +35,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     private let threadPool: PThreadPool
     
     private func performAsync() {
-        threadPool.perform(block: asyncBlock)
+        threadPool.perform(block: asyncBlock, qos: qos)
     }
     
     private func asyncBlock() {

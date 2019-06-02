@@ -19,6 +19,7 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     
     private let lock = PLock()
     private var performing = false
+    var qos: DispatchQoS { return .utility }
     
     init() {
         thread.start()

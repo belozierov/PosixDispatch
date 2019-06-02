@@ -9,10 +9,11 @@
 class PThreadPool {
     
     typealias Block = PThread.Block
+    typealias Qos = QosFifoQueue<Block>.Qos
     static let global = PThreadPool(count: 64)
     
     private let condition = PCondition()
-    private let queue = FifoQueue<Block>()
+    private let queue = QosFifoQueue<Block>()
     private var threads = [PThread]()
     private lazy var runLoop = PRunLoop(condition: condition, iterator: queue.popIterator)
     @inlinable var threadCount: Int { return threads.count }
@@ -31,16 +32,16 @@ class PThreadPool {
     
     // MARK: - Perfrom Block
     
-    func perform(blocks: [Block]) {
+    func perform(blocks: [Block], qos: Qos = .utility) {
         condition.lock()
-        queue.push(blocks)
+        queue.push(blocks, qos: qos)
         condition.broadcast()
         condition.unlock()
     }
     
-    func perform(block: @escaping Block) {
+    func perform(block: @escaping Block, qos: Qos = .utility) {
         condition.lock()
-        queue.push(block)
+        queue.push(block, qos: qos)
         if runLoop.performingLoops != threads.count {
             condition.signal()
         }

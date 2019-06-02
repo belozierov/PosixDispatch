@@ -11,6 +11,9 @@ protocol PDispatchQueueBackend: class {
     typealias Block = PThread.Block
     typealias DispatchItemFlags = PDispatchQueue.DispatchItemFlags
     typealias WorkItem<T> = PDispatchWorkItem<T>
+    typealias DispatchQoS = QosFifoQueue<Block>.Qos
+    
+    var qos: DispatchQoS { get }
     
     @discardableResult func sync<T>(execute work: () throws -> T) rethrows -> T
     @discardableResult func sync<T>(flags: DispatchItemFlags, execute work: () throws -> T) rethrows -> T
