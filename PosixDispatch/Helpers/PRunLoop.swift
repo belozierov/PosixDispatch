@@ -6,31 +6,57 @@
 //  Copyright © 2019 Alex Belozierov. All rights reserved.
 //
 
-class PRunLoop<Iterator: IteratorProtocol> where Iterator.Element == PThread.Block {
+class PRunLoop {
     
+    typealias Block = PThread.Block
+    typealias Iterator = () -> Block?
+    
+    private let iterator: Iterator
     private let condition: PCondition
-    private var iterator: Iterator
-    private(set) var performingLoops = 0
+    private(set) var isCanceled = false
     
-    init(condition: PCondition, iterator: Iterator) {
+    init(condition: PCondition, iterator: @escaping Iterator) {
         self.condition = condition
         self.iterator = iterator
     }
     
-    func run(while cond: @autoclosure () -> Bool) {
-        repeat { loop() } while cond()
-        condition.unlock()
+    func start() {
+        lock()
+        repeat { loop() } while continueLoop
+        unlock()
+    }
+    
+    private var continueLoop: Bool {
+        if isCanceled { return false }
+        condition.wait()
+        return true
     }
     
     private func loop() {
-        condition.wait()
-        performingLoops += 1
-        while let block = iterator.next() {
-            condition.unlock()
+        while let block = iterator() {
+            unlock()
             block()
-            condition.lock()
+            lock()
         }
-        performingLoops -= 1
+    }
+    
+    @inlinable func lock() {
+        condition.lock()
+    }
+    
+    @inlinable func signal() {
+        condition.signal()
+    }
+    
+    @inlinable func unlock() {
+        condition.unlock()
+    }
+    
+    func cancel() {
+        lock()
+        isCanceled = true
+        signal()
+        unlock()
     }
     
 }

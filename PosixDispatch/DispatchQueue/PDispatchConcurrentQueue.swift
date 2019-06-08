@@ -5,7 +5,6 @@
 //  Created by Alex Belozierov on 5/22/19.
 //  Copyright © 2019 Alex Belozierov. All rights reserved.
 //
-
 class PDispatchConcurrentQueue: PDispatchQueueBackend {
     
     private struct Item {
@@ -25,14 +24,14 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     private let lock = PLock()
     let qos: DispatchQoS
     
-    init(threadPool: PThreadPool, qos: DispatchQoS) {
+    init(threadPool: PQosThreadPool, qos: DispatchQoS) {
         self.qos = qos
         self.threadPool = threadPool
     }
     
     // MARK: - Threads
     
-    private let threadPool: PThreadPool
+    private let threadPool: PQosThreadPool
     
     private func performAsync() {
         threadPool.perform(block: asyncBlock, qos: qos)
@@ -75,7 +74,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     
     private func signalConditions() {
         if currentItem.sync != 0 { syncConditions.broadcast(index: currentItem.index) }
-        for _ in 0..<min(currentItem.async, threadPool.threadCount) { performAsync() }
+        for _ in 0..<min(currentItem.async, threadPool.threadNumber) { performAsync() }
     }
     
     private func pushBarrier(item: Item) {

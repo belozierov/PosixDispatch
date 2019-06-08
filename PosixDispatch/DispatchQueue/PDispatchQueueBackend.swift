@@ -11,7 +11,7 @@ protocol PDispatchQueueBackend: class {
     typealias Block = PThread.Block
     typealias DispatchItemFlags = PDispatchQueue.DispatchItemFlags
     typealias WorkItem<T> = PDispatchWorkItem<T>
-    typealias DispatchQoS = QosFifoQueue<Block>.Qos
+    typealias DispatchQoS = PQosThreadPool.Qos
     
     var qos: DispatchQoS { get }
     

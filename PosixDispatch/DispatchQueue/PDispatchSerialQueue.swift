@@ -22,8 +22,7 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     var qos: DispatchQoS { return .utility }
     
     init() {
-        thread.start()
-        lock.lockedPerform(block: threadCondition.wait)
+        PThread(block: runLoop.start).start()
     }
     
     // MARK: - Queue
@@ -33,36 +32,40 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     private func startNextItem() {
         switch queue.first {
         case .sync(let index)?: syncConditions.signal(index: index)
-        case .async?: threadCondition.signal()
+        case .async?: runLoop.signal()
         default: performing = false
         }
     }
     
-    // MARK: - Thread
+    // MARK: - RunLoop
     
-    private lazy var threadCondition = PCondition(lock: lock)
-    
-    private lazy var thread = PThread { [weak self] in
-        self?.lock.lock()
-        self?.threadCondition.signal()
-        self?.runLoop.run(while: self?.startNextItem() != nil)
-    }
-    
-    private var runLoop: PRunLoop<AnyIterator<Block>> {
-        return PRunLoop(condition: threadCondition, iterator: queue.popIterator)
-    }
+    private lazy var runLoop: PRunLoop = {
+        let queue = self.queue
+        return PRunLoop(condition: PCondition(lock: lock)) { [weak self] in
+            switch queue.first {
+            case .async(let blocks)?:
+                queue.pop()
+                return { blocks.blocks.forEach { $0() } }
+            case .sync(let index)?:
+                self?.syncConditions.signal(index: index)
+            default:
+                self?.performing = false
+            }
+            return nil
+        }
+    }()
     
     // MARK: - Async
     
     func async(execute work: @escaping Block) {
         lock.lock()
-        defer { lock.unlock() }
         if case .async(let blocks)? = queue.last {
             blocks.blocks.append(work)
         } else {
             queue.push(.async(.init(work)))
             startAsyncPerforming()
         }
+        lock.unlock()
     }
     
     func async(group: PDispatchGroup? = nil, flags: DispatchItemFlags = [], execute work: @escaping Block) {
@@ -77,7 +80,7 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     private func startAsyncPerforming() {
         if performing { return }
         performing = true
-        threadCondition.signal()
+        runLoop.signal()
     }
     
     // MARK: - Sync
@@ -109,19 +112,7 @@ class PDispatchSerialQueue: PDispatchQueueBackend {
     }
     
     deinit {
-        threadCondition.signal()
-    }
-    
-}
-
-extension FifoQueue where T == PDispatchSerialQueue.Item {
-    
-    fileprivate var popIterator: AnyIterator<PDispatchSerialQueue.Block> {
-        return AnyIterator {
-            guard case .async(let blocks)? = self.first else { return nil }
-            self.pop()
-            return { blocks.blocks.forEach { $0() } }
-        }
+        runLoop.cancel()
     }
     
 }

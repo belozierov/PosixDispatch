@@ -36,7 +36,7 @@ class PDispatchGroup {
 
 extension Optional where Wrapped: PDispatchGroup {
     
-    func block(with work: @escaping PThreadPool.Block) -> PThreadPool.Block {
+    func block(with work: @escaping PThread.Block) -> PThread.Block {
         guard let group = self else { return work }
         group.enter()
         return { work(); group.leave() }
