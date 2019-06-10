@@ -5,6 +5,7 @@
 //  Created by Alex Belozierov on 5/22/19.
 //  Copyright © 2019 Alex Belozierov. All rights reserved.
 //
+
 class PDispatchConcurrentQueue: PDispatchQueueBackend {
     
     private struct Item {
@@ -34,7 +35,7 @@ class PDispatchConcurrentQueue: PDispatchQueueBackend {
     private let threadPool: PQosThreadPool
     
     private func performAsync() {
-        threadPool.perform(block: asyncBlock, qos: qos)
+        threadPool.perform(qos: qos) { self.asyncBlock() }
     }
     
     private func asyncBlock() {

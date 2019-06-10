@@ -18,12 +18,12 @@ class PQosThreadPool {
     static let global = PQosThreadPool(threadNumber: 64)
     
     private let condition = PCondition()
-    private let poolData: PoolData
+    private let state: PoolState
     private let runLoops: UnsafeMutablePointer<PRunLoop>
-    var threadNumber: Int { return poolData.threadNumber }
+    var threadNumber: Int { return state.threadNumber }
     
     init(threadNumber: Int, perform: Performer? = nil) {
-        poolData = PoolData(threadNumber: threadNumber)
+        state = PoolState(threadNumber: threadNumber)
         runLoops = .allocate(capacity: threadNumber)
         let perform = perform ?? { PThread(block: $0).start() }
         for i in 0..<threadNumber {
@@ -34,26 +34,26 @@ class PQosThreadPool {
     }
     
     private var newRunLoop: PRunLoop {
-        let data = RunLoopData(poolData: poolData)
-        return PRunLoop(condition: condition) { data.next() }
+        let loopState = RunLoopState(poolState: state)
+        return PRunLoop(condition: condition) { loopState.next() }
     }
     
-    func perform(block: @escaping Block, qos: Qos = .utility) {
+    func perform(qos: Qos = .utility, block: @escaping Block) {
         condition.lock()
-        poolData.queue.push(block, qos: qos)
-        if poolData.canPerform(qos: qos) { condition.signal() }
+        state.queue.push(block, qos: qos)
+        if state.canPerform(qos: qos) { condition.signal() }
         condition.unlock()
     }
     
-    func perform(blocks: [Block], qos: Qos = .utility) {
+    func perform(qos: Qos = .utility, blocks: [Block]) {
         condition.lock()
-        poolData.queue.push(blocks, qos: qos)
-        if poolData.canPerform(qos: qos) { condition.broadcast() }
+        state.queue.push(blocks, qos: qos)
+        if state.canPerform(qos: qos) { condition.broadcast() }
         condition.unlock()
     }
     
     func subPool(threadNumber: Int, qos: Qos = .utility) -> PThreadPool {
-        return .init(threadNumber: threadNumber) { self.perform(block: $0, qos: qos) }
+        return .init(threadNumber: threadNumber) { self.perform(qos: qos, block: $0) }
     }
     
     deinit {

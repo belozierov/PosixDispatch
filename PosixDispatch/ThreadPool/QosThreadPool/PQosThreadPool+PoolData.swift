@@ -8,36 +8,47 @@
 
 extension PQosThreadPool {
     
-    class PoolData {
+    class PoolState {
         
         let threadNumber: Int, queue = QosFifoQueue<Block>()
-        private let perfroming = UnsafeMutablePointer<Int>.allocate(capacity: 4)
+        private let performing = UnsafeMutablePointer<Int>.allocate(capacity: 4)
+        private let maxThreads: UnsafePointer<Int>
+        private var freeThreads: Int
         
         init(threadNumber: Int) {
             self.threadNumber = threadNumber
-            perfroming.assign(repeating: 0, count: 4)
+            freeThreads = threadNumber
+            performing.assign(repeating: 0, count: 4)
+            let max = Qos.allCases.map { Int($0.maxThreads * Float(threadNumber)) }
+            let maxThreads = UnsafeMutablePointer<Int>.allocate(capacity: 4)
+            maxThreads.initialize(from: max, count: 4)
+            self.maxThreads = .init(maxThreads)
         }
         
         func canPerform(qos: Qos) -> Bool {
-            let max = Int(qos.maxThreads * Float(threadNumber))
+            if freeThreads == 0 { return false }
+            let max = maxThreads[qos.rawValue]
             var sum = 0
-            for i in 0...qos.performingIndex {
-                sum += perfroming[i]
+            for i in (0...qos.rawValue).reversed() {
+                sum += performing[i]
                 if sum >= max { return false }
             }
             return true
         }
         
         @inlinable func startPerforming(qos: Qos) {
-            perfroming[qos.performingIndex] += 1
+            freeThreads -= 1
+            performing[qos.rawValue] += 1
         }
         
         @inlinable func endPerforming(qos: Qos) {
-            perfroming[qos.performingIndex] -= 1
+            freeThreads += 1
+            performing[qos.rawValue] -= 1
         }
         
         deinit {
-            perfroming.deallocate()
+            performing.deallocate()
+            maxThreads.deallocate()
         }
         
     }
@@ -45,10 +56,6 @@ extension PQosThreadPool {
 }
 
 extension PQosThreadPool.Qos {
-    
-    fileprivate var performingIndex: Int {
-        return 3 - rawValue
-    }
     
     var maxThreads: Float {
         switch self {

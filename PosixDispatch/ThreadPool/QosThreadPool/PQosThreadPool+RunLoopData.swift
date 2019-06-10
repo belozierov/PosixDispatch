@@ -8,22 +8,22 @@
 
 extension PQosThreadPool {
     
-    class RunLoopData {
+    class RunLoopState {
         
-        private let poolData: PoolData
+        private let poolState: PoolState
         private var isRunning = false
         private var lastQos = Qos.utility
         
-        init(poolData: PoolData) {
-            self.poolData = poolData
+        init(poolState: PoolState) {
+            self.poolState = poolState
         }
         
         func next() -> Block? {
-            guard let qos = poolData.queue.firstQos else {
+            guard let qos = poolState.queue.firstQos else {
                 cancelPerfom()
                 return nil
             }
-            return perfromNext(qos: qos) ? poolData.queue.pop() : nil
+            return perfromNext(qos: qos) ? poolState.queue.pop() : nil
         }
         
         private func perfromNext(qos: Qos) -> Bool {
@@ -32,7 +32,7 @@ extension PQosThreadPool {
                 return true
             }
             cancelPerfom()
-            if !poolData.canPerform(qos: qos) { return false }
+            if !poolState.canPerform(qos: qos) { return false }
             startPerfom(qos: qos)
             lastQos = qos
             return true
@@ -40,13 +40,13 @@ extension PQosThreadPool {
         
         private func startPerfom(qos: Qos) {
             if isRunning { return }
-            poolData.startPerforming(qos: qos)
+            poolState.startPerforming(qos: qos)
             isRunning = true
         }
         
         private func cancelPerfom() {
             guard isRunning else { return }
-            poolData.endPerforming(qos: lastQos)
+            poolState.endPerforming(qos: lastQos)
             isRunning = false
         }
         
