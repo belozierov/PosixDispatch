@@ -12,7 +12,6 @@ extension PQosThreadPool {
         
         private typealias Queue = FifoQueue<T>
         private let queues = UnsafeMutablePointer<Queue>.allocate(capacity: 4)
-        private var count = 0
         
         init() {
             let queues = (0..<4).map { _ in Queue() }
@@ -20,31 +19,19 @@ extension PQosThreadPool {
         }
         
         @inlinable func push(_ item: T, qos: Qos) {
-            count += 1
             queues[qos.rawValue].push(item)
         }
         
         @inlinable func push(_ items: [T], qos: Qos) {
-            count += items.count
             queues[qos.rawValue].push(items)
         }
         
-        @discardableResult func pop() -> T? {
-            if count == 0 { return nil }
-            for i in 0..<4 {
-                guard let item = queues[i].pop() else { continue }
-                count -= 1
-                return item
-            }
-            return nil
+        @inlinable func pop(qos: Qos) -> T? {
+            return queues[qos.rawValue].pop()
         }
         
-        @inlinable var firstQos: Qos? {
-            if count == 0 { return nil }
-            for i in 0..<4 where queues[i].first != nil {
-                return Qos(rawValue: i)
-            }
-            return nil
+        var firstQos: Qos? {
+            return (0..<4).first { !queues[$0].isEmpty }.flatMap(Qos.init)
         }
         
         deinit {

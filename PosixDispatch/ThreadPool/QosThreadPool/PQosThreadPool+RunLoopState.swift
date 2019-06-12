@@ -23,7 +23,7 @@ extension PQosThreadPool {
                 cancelPerfom()
                 return nil
             }
-            return perfromNext(qos: qos) ? poolState.queue.pop() : nil
+            return perfromNext(qos: qos) ? poolState.queue.pop(qos: qos) : nil
         }
         
         private func perfromNext(qos: Qos) -> Bool {
